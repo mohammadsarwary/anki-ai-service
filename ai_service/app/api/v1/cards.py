@@ -13,9 +13,9 @@ Future extension points:
 """
 
 from fastapi import APIRouter
+from app.models.response import  CardGenerationResponse
 
 from app.models.request import CardGenerationRequest
-from app.models.response import CardGenerationResponse
 from app.services.card_generation_service import CardGenerationService
 
 router = APIRouter()
@@ -23,7 +23,7 @@ service = CardGenerationService()
 
 
 @router.post(
-    "/generate",
+    "/generate-flashcards",
     response_model=CardGenerationResponse,    
 )
 async def generate_card(
