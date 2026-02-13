@@ -26,6 +26,7 @@ import openai
 from fastapi import HTTPException
 from app.models.response import CardBack, CardGenerationResponse, TTS, Pronunciation, Example
 from app.core.config import settings
+from app.core.exceptions import APIProviderError,APIRateLimitError,InvalidResponseError
 
 client = OpenAI(
     api_key=settings.OPENROUTER_API_KEY,
@@ -122,14 +123,14 @@ class CardGenerationService:
                 },
             )
 
+        #Error exception
         except openai.RateLimitError as e:
             logger.warning("Rate limit by provider")
-            raise HTTPException(status_code=429, detail="AI provider is temporarily rate-limited. Please try again in a few minutes.")   
+            raise APIRateLimitError()
 
         except openai.APIError as e:
-            logger.error("OpenAI error: %s", e)
-            raise HTTPException(status_code=502, detail="AI provider returned an error. Please try again later.")
-
+            logger.warning("Open AI error:%s",e)
+            raise APIProviderError()
 
         raw=response.choices[0].message.content.strip()
         logger.info("Raw response: %s", raw)
@@ -138,7 +139,7 @@ class CardGenerationService:
             data=json.loads(raw)
         except json.JSONDecodeError:
             logger.error("Failed to parse AI response as JSON: %s", raw)
-            raise HTTPException(status_code=502, detail="AI provider returned invalid JSON. Please try again later.")
+            raise InvalidResponseError()
 
         back_data=data.get("back",{})
 
@@ -177,12 +178,12 @@ class CardGenerationService:
         return CardGenerationResponse(
             front=data.get("front", term),
             back=CardBack(
-                definition=data.get("definition", ""),
+                definition=back_data.get("definition", ""),
                 examples=example_list,
                 pronunciation=pronunciation,
-                part_of_speech=data.get("part_of_speech", ""),
-                usage=data.get("usage", ""),
-                memory_tip=data.get("memory_tip", ""),
+                part_of_speech=back_data.get("part_of_speech", ""),
+                usage=back_data.get("usage", ""),
+                memory_tip=back_data.get("memory_tip", ""),
             ),
             difficulty=data.get("difficulty", "medium"),
         )

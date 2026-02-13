@@ -23,9 +23,9 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
 
-    OPENROUTER_API_KEY: str = "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"  # کلید API
+    OPENROUTER_API_KEY: str = "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"  # کلید API
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"  # URL پایه
-    OPENROUTER_MODEL: str = "tngtech/deepseek-r1t2-chimera:free"  # نام مدل
+    OPENROUTER_MODEL: str = "z-ai/glm-4.5-air:free"  # نام مدل
     OPENROUTER_MAX_TOKENS: int = 2000  # حداکثر توکن‌ها
     OPENROUTER_REFERER: str = "https://www.youtube.com/"  # برای HTTP-Referer header
     OPENROUTER_SITE_TITLE: str = "anki-ai"  # برای X-Title header

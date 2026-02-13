@@ -17,11 +17,13 @@ import os
 import sys
 
 
-from fastapi import FastAPI
+from fastapi import FastAPI,Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from app.api.v1.cards import router as cards_router
 from app.core.config import settings
 from app.utils.logger import logger
-
+from fastapi.middleware.cors import CORSMiddleware 
 
 
 app = FastAPI(
@@ -33,9 +35,35 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
+# CROS Middleware  
+# ---------------------------------------------------------------------------
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "*"
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------------------------------------------------------------------
 # Router registration
 # ---------------------------------------------------------------------------
 app.include_router(cards_router, prefix="/api/v1")
+
+
+# ---------------------------------------------------------------------------
+# Exception handler
+# ---------------------------------------------------------------------------
+
+@app.exception_handler(RequestValidationError)
+async def validation_exeption_handler(request:Request,exc:RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail":exc.errors(),"type":"validation_error"}
+    )
 
 
 # ---------------------------------------------------------------------------

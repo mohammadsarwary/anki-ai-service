@@ -11,10 +11,15 @@ Future extension points:
     - Add custom validators (e.g. supported language codes)
     - Add batch generation request model
 """
-
+from enum import Enum
 from pydantic import BaseModel, Field
 
 
+class Level(str, Enum):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+ 
 class CardGenerationRequest(BaseModel):
     """Payload for the card generation endpoint."""
 
@@ -39,8 +44,7 @@ class CardGenerationRequest(BaseModel):
         description="ISO language code for the card's target language.",
         examples=["fa"],
     )
-    level: str = Field(
-        default="beginner",
+    level: Level = Field(
+        default=Level.BEGINNER,
         description="Learner proficiency level.",
-        examples=["beginner", "intermediate", "advanced"],
     )

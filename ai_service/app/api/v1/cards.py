@@ -12,15 +12,16 @@ Future extension points:
     - Add streaming response endpoint for long-running generations
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter,Depends
 from app.models.response import  CardGenerationResponse
 
 from app.models.request import CardGenerationRequest
 from app.services.card_generation_service import CardGenerationService
 
 router = APIRouter()
-service = CardGenerationService()
 
+def get_card_service()->CardGenerationService:
+    return CardGenerationService()
 
 @router.post(
     "/generate-flashcards",
@@ -28,6 +29,7 @@ service = CardGenerationService()
 )
 async def generate_card(
     request: CardGenerationRequest,
+    service:CardGenerationService=Depends(get_card_service),
 ):
     """Thin handler — delegates to the service layer."""
     
