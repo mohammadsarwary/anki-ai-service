@@ -45,67 +45,45 @@ class CardGenerationService:
     )->CardGenerationResponse:
 
 
-        prompt = (
+        prompt = f'''You are a flashcard designer. Generate ONE flashcard for "{term}".
 
-            f'You are an expert English teacher and UX-focused flashcard designer.\n\n'
-            f'Your task is to generate ONE flashcard for the word "{term}" at {level} level.\n\n'
-            f'CRITICAL OUTPUT RULES:\n'
-            f'- Output VALID JSON ONLY - NO markdown, NO code blocks, NO explanations outside JSON\n'
-            f'- ABSOLUTELY NO HTML TAGS - Use plain text only\n'
-            f'- NO EMOJIS - Use plain text only\n'
-            f'- NO MARKDOWN FORMATTING - Use plain text only\n'
-            f'- All content must be structured JSON with nested objects\n'
-            f'- Missing data should be returned as null or empty array\n'
-            f'- Friendly, natural, learner-focused tone\n'
-            f'- Avoid dictionary tone\n\n'
-            f'Input:\n'
-            f'Word: "{term}"\n'
-            f'Level: "{level}"\n'
-            f'Language: "{language}"\n'
-            f'Target Language: "{target_language}"\n\n'
-            f'Return JSON format EXACTLY like this:\n\n'
-            f'{{\n'
-            f'  "front": "{term}",\n'
-            f'  "difficulty": "easy|medium|hard",\n'
-            f'  "back": {{\n'
-            f'    "definition": "Simple and friendly definition",\n'
-            f'    "pronunciation": {{\n'
-            f'      "text": "Written pronunciation guide (not IPA)",\n'
-            f'      "hint": "Helpful pronunciation hint or null if not available",\n'
-            f'      "tts": {{\n'
-            f'        "text": "{term}",\n'
-            f'        "lang": "en-US"\n'
-            f'      }}\n'
-            f'    }},\n'
-            f'    "part_of_speech": "noun|verb|adjective|etc or null if not applicable",\n'
-            f'    "usage": "Real-life explanation of how to use this word or null if not available",\n'
-            f'    "examples": [\n'
-            f'      {{\n'
-            f'        "text": "Simple example sentence",\n'
-            f'        "tts": {{ "text": "Simple example sentence", "lang": "en-US" }}\n'
-            f'      }},\n'
-            f'      {{\n'
-            f'        "text": "Natural/native example sentence",\n'
-            f'        "tts": {{ "text": "Natural/native example sentence", "lang": "en-US" }}\n'
-            f'      }}\n'
-            f'    ],\n'
-            f'    "memory_tip": "Short and helpful memory tip or null if not available"\n'
-            f'  }}\n'
-            f'}}\n\n'
-            f'Requirements:\n'
-            f'- difficulty must be exactly "easy", "medium", or "hard"\n'
-            f'- examples must be an array (can be empty if not available)\n'
-            f'- definition is required and must be non-empty\n'
-            f'- pronunciation can be null if not available\n'
-            f'- If pronunciation is present and pronunciation.tts is present, pronunciation.tts.text MUST be the natural word (NOT phonetic)\n'
-            f'- If pronunciation.tts is present, pronunciation.tts.lang MUST be "en-US" by default\n'
-            f'- part_of_speech can be null if not applicable\n'
-            f'- usage can be null if not available\n'
-            f'- memory_tip can be null if not available\n'
-            f'- NO HTML tags anywhere in the response\n'
-            f'- NO EMOJIS anywhere in the response\n'
-            f'- NO MARKDOWN formatting anywhere in the response'
-        )
+            INPUT:
+            - Word: "{term}"
+            - Level: "{level}"
+            - Source Language: "{language}"
+            - Target Language: "{target_language}"
+
+            OUTPUT RULES:
+            1. Return ONLY valid JSON (no markdown, no code blocks)
+            2. Use plain text only (no HTML, no emojis, no markdown)
+            3. Translate these fields to Target Language ({target_language}):
+            - definition
+            - part_of_speech
+            - usage
+            - memory_tip
+            4. Keep examples in the source language ({language})
+            5. pronunciation.tts.text must be the natural word, not phonetic
+
+            JSON STRUCTURE:
+            {{
+            "front": "{term}",
+            "difficulty": "easy|medium|hard",
+            "back": {{
+                "definition": "Definition in {target_language}",
+                "pronunciation": {{
+                "text": "Pronunciation guide",
+                "hint": "Pronunciation hint or null",
+                "tts": {{ "text": "{term}", "lang": "{language}" }}
+                }},
+                "part_of_speech": "Part of speech in {target_language}",
+                "usage": "Usage explanation in {target_language}",
+                "examples": [
+                {{ "text": "Example in {language}", "tts": {{ "text": "...", "lang": "{language}" }} }}
+                ],
+                "memory_tip": "Memory tip in {target_language} or null"
+            }}
+            }}'''
+        
 
         logger.info("Generating card for term: '%s'", term)
         
