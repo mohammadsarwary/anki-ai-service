@@ -27,7 +27,7 @@ from fastapi import HTTPException
 from app.models.response import CardBack, CardGenerationResponse, TTS, Pronunciation, Example
 from app.core.config import settings
 from app.core.exceptions import APIProviderError,APIRateLimitError,InvalidResponseError
-
+import re
 client = OpenAI(
     api_key=settings.OPENROUTER_API_KEY,
     base_url=settings.OPENROUTER_BASE_URL,
@@ -45,45 +45,26 @@ class CardGenerationService:
     )->CardGenerationResponse:
 
 
-        prompt = f'''You are a flashcard designer. Generate ONE flashcard for "{term}".
+        prompt = f'''You are a JSON API. You MUST respond with ONLY valid JSON.
 
-            INPUT:
-            - Word: "{term}"
-            - Level: "{level}"
-            - Source Language: "{language}"
-            - Target Language: "{target_language}"
+        CRITICAL RULES:
+        1. Start your response with {{ and end with }}
+        2. Do NOT write any thinking, reasoning, or explanation
+        3. Do NOT use markdown code blocks
+        4. Do NOT write anything before or after the JSON
 
-            OUTPUT RULES:
-            1. Return ONLY valid JSON (no markdown, no code blocks)
-            2. Use plain text only (no HTML, no emojis, no markdown)
-            3. Translate these fields to Target Language ({target_language}):
-            - definition
-            - part_of_speech
-            - usage
-            - memory_tip
-            4. Keep examples in the source language ({language})
-            5. pronunciation.tts.text must be the natural word, not phonetic
+        Generate a flashcard for "{term}" in this EXACT format:
 
-            JSON STRUCTURE:
-            {{
-            "front": "{term}",
-            "difficulty": "easy|medium|hard",
-            "back": {{
-                "definition": "Definition in {target_language}",
-                "pronunciation": {{
-                "text": "Pronunciation guide",
-                "hint": "Pronunciation hint or null",
-                "tts": {{ "text": "{term}", "lang": "{language}" }}
-                }},
-                "part_of_speech": "Part of speech in {target_language}",
-                "usage": "Usage explanation in {target_language}",
-                "examples": [
-                {{ "text": "Example in {language}", "tts": {{ "text": "...", "lang": "{language}" }} }}
-                ],
-                "memory_tip": "Memory tip in {target_language} or null"
-            }}
-            }}'''
-        
+        {{"front": "{term}", "difficulty": "easy", "back": {{"definition": "Definition in {target_language}", "pronunciation": {{"text": "pronunciation guide", "hint": null, "tts": {{"text": "{term}", "lang": "{language}"}}}}, "part_of_speech": "Part of speech in {target_language}", "usage": "Usage in {target_language}", "examples": [{{"text": "Example in {language}", "tts": {{"text": "...", "lang": "{language}"}}}}], "memory_tip": "Memory tip in {target_language}"}}}}
+
+        INPUT:
+        - Word: "{term}"
+        - Level: "{level}"
+        - Source Language: "{language}"
+        - Target Language: "{target_language}"
+
+        RESPOND WITH JSON ONLY:'''
+                
 
         logger.info("Generating card for term: '%s'", term)
         
@@ -91,9 +72,10 @@ class CardGenerationService:
             response=client.chat.completions.create(
                 model=settings.OPENROUTER_MODEL,
                 messages=[
-                    {"role": "system", "content": "You are a helpful flashcard generator. Always respond with valid JSON only."},
+                    {"role": "system", "content": "You are a JSON API. You MUST respond with ONLY valid JSON. No thinking, no reasoning, no explanation. Start with { and end with }."},
                     {"role": "user", "content": prompt},
                 ],
+                response_format={ "type": "json_object" },
                 max_tokens=settings.OPENROUTER_MAX_TOKENS,
                 extra_headers={
                     "HTTP-Referer": settings.OPENROUTER_REFERER,
@@ -112,6 +94,10 @@ class CardGenerationService:
 
         raw=response.choices[0].message.content.strip()
         logger.info("Raw response: %s", raw)
+
+        raw=re.sub(r'^```(?:json)?\s*', '', raw) 
+        raw=re.sub(r'\s*```$', '', raw)
+        raw=raw.strip()
 
         try:
             data=json.loads(raw)
