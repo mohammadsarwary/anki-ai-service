@@ -23,9 +23,11 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
 
-    OPENROUTER_API_KEY: str = "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"  # کلید API
+    LARAVEL_API_URL: str = "http://anki-ai-backend.test"  
+    LARAVEL_TIMEOUT: int = 5
+    OPENROUTER_API_KEY: str = "sk-MKjxNYeNmqRgW6iO6VlX78agSCmM89HjcqLT8SbyCCAMUd7c"  # کلید API
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"  # URL پایه
-    OPENROUTER_MODEL: str = "z-ai/glm-4.5-air:free"  # نام مدل
+    OPENROUTER_MODEL: str = "deepseek-r1-0528"  # نام مدل
     OPENROUTER_MAX_TOKENS: int = 2000  # حداکثر توکن‌ها
     OPENROUTER_REFERER: str = "https://www.youtube.com/"  # برای HTTP-Referer header
     OPENROUTER_SITE_TITLE: str = "anki-ai"  # برای X-Title header

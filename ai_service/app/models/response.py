@@ -126,3 +126,11 @@ class CardGenerationResponse(BaseModel):
         examples=["easy", "medium", "hard"],
     )
 
+
+class CardGenerationFromTopicResponse(BaseModel):
+    """
+    Payload returned by the card generation from topic endpoint.
+    """
+
+    cards:List[CardGenerationResponse]=Field(default_factory=list)
+

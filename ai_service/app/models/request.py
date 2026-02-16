@@ -48,3 +48,43 @@ class CardGenerationRequest(BaseModel):
         default=Level.BEGINNER,
         description="Learner proficiency level.",
     )
+
+
+class CardGenerationFromTopicRequest(BaseModel):
+    """
+    Payload for card generation from topic endpoint.
+    """
+    topic:str=Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="The topic to generate flashcards for.",
+        examples=["At the end of the day"],
+    )
+
+    count:int=Field(
+        default=5,
+        description="Number of flashcards to generate.",
+    )
+
+    level: Level = Field(
+        default=Level.BEGINNER,
+        description="Learner proficiency level.",
+    )
+
+    language: str = Field(
+        default="en",
+        min_length=2,
+        max_length=10,
+        description="ISO language code of the source term.",
+        examples=["en"],
+    )
+    
+    target_language: str = Field(
+        default="fa",
+        min_length=2,
+        max_length=10,
+        description="ISO language code for the card's target language.",
+        examples=["fa"],
+    )
+    
