@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
 
+    # AI Provider Selection
+    AI_PROVIDER: str = "google_gemini"  # "openrouter" or "google_gemini
+
+    # Google Gemini
+    GOOGLE_API_KEY: str = "AIzaSyBPl8iUuzfB8saYFk-Rlmb3f7oZhdzbt6s"
+    GOOGLE_GEMINI_MODEL: str = "gemini-3-flash-preview"
+
     LARAVEL_API_URL: str = "http://anki-ai-backend.test"  
     LARAVEL_TIMEOUT: int = 5
     OPENROUTER_API_KEY: str = "sk-MKjxNYeNmqRgW6iO6VlX78agSCmM89HjcqLT8SbyCCAMUd7c"  # کلید API
