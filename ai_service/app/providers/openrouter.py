@@ -38,42 +38,45 @@ class OpenRouterProvider(AIProvider):
     ) -> CardGenerationFromTopicResponse:
         """Generate multiple flashcards from a topic."""
         
-        prompt = f'''You are a JSON API. You MUST respond with ONLY valid JSON.
+        prompt = f'''You are an expert language learning flashcard generator.
 
-        Generate {count} flashcards about "{topic}" at {level} level.
+            TASK: Generate {count} flashcards about "{topic}" for {level} level learners.
 
-        Return JSON in this EXACT format (must be an object with "cards" array):
-        {{
-            "cards": [
-                {{
-                    "front": "word",
-                    "difficulty": "easy|medium|hard",
-                    "back": {{
-                        "definition": "Simple definition in {target_language}",
-                        "pronunciation": {{
-                            "text": "pronunciation guide",
-                            "hint": "helpful hint or null",
-                            "tts": {{ "text": "word", "lang": "{language}" }}
-                        }},
-                        "part_of_speech": "noun/verb/etc or null",
-                        "usage": "How to use this word or null",
-                        "examples": [
-                            {{ "text": "Example sentence", "tts": {{ "text": "Example sentence", "lang": "{language}" }} }}
-                        ],
-                        "memory_tip": "Memory tip or null"
+            OUTPUT FORMAT: Return ONLY valid JSON with this structure:
+            {{
+                "cards": [
+                    {{
+                        "front": "word or phrase",
+                        "difficulty": "easy|medium|hard",
+                        "back": {{
+                            "definition": "Definition in {target_language}",
+                            "pronunciation": {{
+                                "text": "pronunciation guide",
+                                "hint": "helpful hint or null",
+                                "tts": {{ "text": "word", "lang": "{language}" }}
+                            }},
+                            "part_of_speech": "noun|verb|adjective|idiom|phrase",
+                            "usage": "How to use this word",
+                            "examples": [{{ "text": "Example sentence", "tts": {{ "text": "...", "lang": "{language}" }} }}],
+                            "memory_tip": "Memory technique"
+                        }}
                     }}
-                }}
-            ]
-        }}
+                ]
+            }}
 
-        INPUT:
-        - Topic: "{topic}"
-        - Count: {count}
-        - Level: "{level}"
-        - Language: "{language}"
-        - Target Language: "{target_language}"
+            LEVEL GUIDELINES:
+            - beginner: Common words, simple definitions, basic examples
+            - intermediate: Everyday vocabulary, moderate complexity
+            - advanced: Academic words, nuanced definitions, complex examples
 
-        RESPOND WITH JSON ONLY:'''
+            QUALITY RULES:
+            - Each card MUST have a UNIQUE word (no duplicates)
+            - Words must be directly relevant to "{topic}"
+            - Examples must be natural and practical
+            - Definitions in {target_language}, examples in {language}
+
+            Generate {count} unique flashcards now:'''
+
         logger.info("Generating card from topic: '%s'", topic)
         try:
             response = self.client.chat.completions.create(
@@ -116,7 +119,7 @@ class OpenRouterProvider(AIProvider):
 
         #parse cards list
         cards=[]
-        for card_data in data:
+        for card_data in data.get("cards",[]):
             back_data=card_data.get("back",{})
 
             # parse pronuncation
