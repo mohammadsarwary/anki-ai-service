@@ -24,8 +24,8 @@ class OpenRouterProvider(AIProvider):
     
     def __init__(self):
         self.client = OpenAI(
-            api_key=settings.OPENROUTER_API_KEY,
-            base_url=settings.OPENROUTER_BASE_URL,
+            api_key=settings.CEREBRAS_API_KEY,
+            base_url=settings.CEREBRAS_BASE_URL,
         )
     
     async def generate_cards_from_topic(
@@ -77,7 +77,7 @@ class OpenRouterProvider(AIProvider):
         logger.info("Generating card from topic: '%s'", topic)
         try:
             response = self.client.chat.completions.create(
-                model=settings.OPENROUTER_MODEL,
+                model=settings.CEREBRAS_MODEL,
                 messages=[
                     {"role": "system", "content": "You are a JSON API. You MUST respond with ONLY valid JSON. No thinking, no reasoning, no explanation. Start with { and end with }."},
                     {"role": "user", "content": prompt},
@@ -203,7 +203,7 @@ class OpenRouterProvider(AIProvider):
         
         try:
             response = self.client.chat.completions.create(
-                model=settings.OPENROUTER_MODEL,
+                model=settings.CEREBRAS_MODEL,
                 messages=[
                     {"role": "system", "content": "You are a JSON API. You MUST respond with ONLY valid JSON. No thinking, no reasoning, no explanation. Start with { and end with }."},
                     {"role": "user", "content": prompt},

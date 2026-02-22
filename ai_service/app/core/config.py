@@ -24,17 +24,21 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # AI Provider Selection
-    AI_PROVIDER: str = "google_gemini"  # "openrouter" or "google_gemini
+    AI_PROVIDER: str = "openrouter"  # "openrouter" or "google_gemini, cerebras
 
     # Google Gemini
     GOOGLE_API_KEY: str = "AIzaSyBPl8iUuzfB8saYFk-Rlmb3f7oZhdzbt6s"
     GOOGLE_GEMINI_MODEL: str = "gemini-3-flash-preview"
 
+    CEREBRAS_API_KEY: str = "csk-2jkwfhnpvyjhrwy8ymm94ht8dh2wnt24858m94fjx6cycrec"
+    CEREBRAS_MODEL: str = "gpt-oss-120b"
+    CEREBRAS_BASE_URL: str = "https://api.cerebras.ai/v1"
+
     LARAVEL_API_URL: str = "http://anki-ai-backend.test"  
     LARAVEL_TIMEOUT: int = 5
-    OPENROUTER_API_KEY: str = "sk-MKjxNYeNmqRgW6iO6VlX78agSCmM89HjcqLT8SbyCCAMUd7c"  # کلید API
+    OPENROUTER_API_KEY: str = "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"  # کلید API
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"  # URL پایه
-    OPENROUTER_MODEL: str = "deepseek-r1-0528"  # نام مدل
+    OPENROUTER_MODEL: str = "z-ai/glm-4.5-air:free"  # نام مدل
     OPENROUTER_MAX_TOKENS: int = 2000  # حداکثر توکن‌ها
     OPENROUTER_REFERER: str = "https://www.youtube.com/"  # برای HTTP-Referer header
     OPENROUTER_SITE_TITLE: str = "anki-ai"  # برای X-Title header
