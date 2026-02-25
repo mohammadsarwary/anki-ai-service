@@ -333,6 +333,51 @@ class OpenRouterProvider(AIProvider):
         - Return ONLY valid JSON, no markdown formatting
         """.strip()
 
-        
+        logger.info("Generating practice sentence feedback for word: '%s'", target_word)
 
-        pass
+        try:
+            response = self.client.chat.completions.create(
+                model=settings.CEREBRAS_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are a helpful language learning assistant evaluating a student's sentence creation practice. You MUST respond with ONLY valid JSON. No thinking, no reasoning, no explanation. Start with { and end with }."},
+                    {"role": "user", "content": prompt},
+                ],
+                response_format={"type": "json_object"},
+                max_tokens=settings.OPENROUTER_MAX_TOKENS,
+                extra_headers={
+                    "HTTP-Referer": settings.OPENROUTER_REFERER,
+                    "X-Title": settings.OPENROUTER_SITE_TITLE,
+                },
+            )
+
+        except openai.RateLimitError as e:
+            logger.warning("Rate limit by provider")
+            raise APIRateLimitError()
+        except openai.APIError as e:
+            logger.error("Open AI error: %s", e)
+            raise APIProviderError()
+        
+        raw=response.choices[0].message.content.strip()
+        logger.info("Raw response: %s", raw)
+        raw=re.sub(r'^```(?:json)?\s*', '', raw)
+        raw=re.sub(r'\s*```$', '', raw)
+        raw=raw.strip()
+
+        try:
+            data=json.loads(raw)
+        except json.JSONDecodeError:
+            logger.error("Failed to parse AI response as JSON: %s", raw)
+            raise InvalidResponseError()
+        
+        return PracticeSentenceResponse(
+            success=True,
+            data=PracticeSentenceData(
+                naturalness_score=data.get("naturalness_score", 0),
+                feedback_message=data.get("feedback_message", ""),
+                suggestions=data.get("suggestions", []),
+                grammar_notes=data.get("grammar_notes"),
+                encouragement=data.get("encouragement", ""),
+                user_sentence=user_sentence,
+            )
+
+        )
