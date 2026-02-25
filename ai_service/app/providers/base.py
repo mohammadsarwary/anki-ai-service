@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-from app.models.response import CardGenerationResponse, CardGenerationFromTopicResponse
+from app.models.response import CardGenerationResponse, CardGenerationFromTopicResponse,PracticeSentenceResponse
 
 
 class AIProvider(ABC):
@@ -27,4 +27,14 @@ class AIProvider(ABC):
         target_language: str,
     ) -> CardGenerationFromTopicResponse:
         """Generate multiple flashcards from a topic."""
+        pass
+
+    @abstractmethod
+    async def generate_practice_sentence(
+        self, 
+        target_word: str, 
+        user_sentence: str,
+        language: str
+    ) -> PracticeSentenceResponse:
+        """Generate a practice sentence."""
         pass

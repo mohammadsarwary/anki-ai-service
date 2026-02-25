@@ -17,6 +17,57 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
+class PracticeSentenceData(BaseModel):
+    """Payload returned by the practice sentence generation endpoint."""
+
+    naturalness_score:str=Field(
+        ge=0,
+        le=100,
+        description="A score from 0 to 100 indicating how natural the user's sentence is.",
+        examples=[85],
+    )
+    score_label:str=Field(
+        description="A qualitative label for the naturalness score (e.g., 'Poor', 'Fair', 'Good', 'Excellent').",
+        examples=["Good"],
+    )
+    feedback_message:str=Field(
+        description="A helpful message providing feedback on how to improve the sentence.",
+        examples=["Consider using a more vivid adjective to describe the fleeting nature of the beauty."],
+    )
+
+    user_sentence: str = Field(
+        description="A practice sentence that includes the target word.",
+        examples=["The beauty of cherry blossoms is ephemeral."],
+    )
+    suggestions: List[str]=Field(
+        default_factory=list,
+        description="A list of suggested alternative sentences that might be more natural.",
+        examples=[
+            ["The ephemeral beauty of cherry blossoms makes them special."],
+             "The company's performance has remained consistent over the years.",
+            ],
+    ) 
+    grammer_notes: Optional[str] = Field(
+        default=None,
+        description="Optional grammar notes explaining common pitfalls or improvements.",
+        
+    )
+    encouragement:Optional[str] = Field(
+        default=None,
+        description="Optional encouraging message to motivate the learner.",
+    )
+
+class PracticeSentenceResponse(BaseModel):
+    """Top-level response model for the practice sentence generation endpoint."""
+    success: bool = Field(
+        default=True,
+        description="Indicates whether the sentence evaluation was successful.",
+    )
+    data: PracticeSentenceData = Field(
+        default_factory=PracticeSentenceData,
+        description="Structured data containing the evaluation of the user's sentence and feedback.",
+    )
+    
 class TTS(BaseModel):
     """Text-to-Speech configuration for audio generation.
     

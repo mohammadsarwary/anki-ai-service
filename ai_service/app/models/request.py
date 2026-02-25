@@ -20,6 +20,31 @@ class Level(str, Enum):
     INTERMEDIATE = "intermediate"
     ADVANCED = "advanced"
  
+class PracticeSentenceRequest(BaseModel):
+    """Payload for the practice sentence generation endpoint."""
+
+    target_word: str = Field(
+        ...,
+        min_length=1,
+        max_length=20,
+        description="The word or phrase to generate a practice sentence for.",
+        examples=["ephemeral"],
+    )
+    user_sentence: str = Field(
+        ...,
+        min_length=5,
+        max_length=500,
+        description="A sentence provided by the user that includes the target word.",
+        examples=["The beauty of cherry blossoms is ephemeral."],
+    )
+    language: str = Field(
+        default="en",
+        min_length=2,
+        max_length=10,
+        description="ISO language code of the target word.",
+        examples=["en"],
+    )
+
 class CardGenerationRequest(BaseModel):
     """Payload for the card generation endpoint."""
 

@@ -13,6 +13,8 @@ from app.models.response import (
     TTS,
     Pronunciation,
     Example,
+    PracticeSentenceData,
+    PracticeSentenceResponse
 )
 from app.core.config import settings
 from app.core.exceptions import APIProviderError, APIRateLimitError, InvalidResponseError
@@ -288,4 +290,49 @@ class OpenRouterProvider(AIProvider):
             difficulty=data.get("difficulty", "medium"),
         )
 
-       
+
+    async def generate_practice_sentence(
+        self,
+        target_word:str,
+        user_sentence:str,  
+        language:str
+    ) -> PracticeSentenceResponse:
+        """Generate a practice sentence."""
+
+        prompt = f"""
+        You are a helpful language learning assistant evaluating a student's sentence creation practice.
+
+        Target word: {target_word}
+        User's sentence: {user_sentence}
+        Language: {language}
+
+        Your task:
+        1. Evaluate how naturally the user used the target word in their sentence
+        2. Assign a naturalness score from 0-100 where:
+        - 90-100: Excellent, native-like usage
+        - 75-89: Very good, natural and correct
+        - 60-74: Good, understandable but could be improved
+        - 40-59: Okay, awkward or unnatural phrasing
+        - 0-39: Poor, incorrect usage or doesn't make sense
+        3. Provide exactly 3 alternative example sentences showing better usage of the word
+        4. Give encouraging feedback - NEVER be harsh or discouraging
+        5. Consider grammar, context, and naturalness
+
+        Return a JSON object with:
+        - naturalness_score (integer 0-100): The naturalness score
+        - feedback_message (string): Short encouraging message (max 100 chars)
+        - suggestions (array): Exactly 3 example sentences showing better usage
+        - grammar_notes (string|null): Brief grammar tip if needed, null if sentence is perfect
+        - encouragement (string): Motivational closing message
+
+        IMPORTANT:
+        - Always be positive and encouraging
+        - Focus on learning, not grading
+        - Provide actionable suggestions
+        - Keep suggestions simple and clear
+        - Return ONLY valid JSON, no markdown formatting
+        """.strip()
+
+        
+
+        pass
