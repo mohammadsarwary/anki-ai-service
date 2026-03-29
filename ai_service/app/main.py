@@ -21,6 +21,7 @@ from fastapi import FastAPI,Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.api.v1.cards import router as cards_router
+from app.api.v1.practice import router as practice_router
 from app.core.config import settings
 from app.utils.logger import logger
 from fastapi.middleware.cors import CORSMiddleware 
@@ -52,7 +53,7 @@ app.add_middleware(
 # Router registration
 # ---------------------------------------------------------------------------
 app.include_router(cards_router, prefix="/api/v1")
-
+app.include_router(practice_router, prefix="/api/v1")
 
 # ---------------------------------------------------------------------------
 # Exception handler

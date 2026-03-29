@@ -20,13 +20,14 @@ from pydantic import BaseModel, Field
 class PracticeSentenceData(BaseModel):
     """Payload returned by the practice sentence generation endpoint."""
 
-    naturalness_score:str=Field(
+    naturalness_score:int=Field(
         ge=0,
         le=100,
         description="A score from 0 to 100 indicating how natural the user's sentence is.",
         examples=[85],
     )
-    score_label:str=Field(
+    score_label:Optional[str]=Field(
+        default="Good",
         description="A qualitative label for the naturalness score (e.g., 'Poor', 'Fair', 'Good', 'Excellent').",
         examples=["Good"],
     )
@@ -47,7 +48,7 @@ class PracticeSentenceData(BaseModel):
              "The company's performance has remained consistent over the years.",
             ],
     ) 
-    grammer_notes: Optional[str] = Field(
+    grammar_notes: Optional[str] = Field(
         default=None,
         description="Optional grammar notes explaining common pitfalls or improvements.",
         

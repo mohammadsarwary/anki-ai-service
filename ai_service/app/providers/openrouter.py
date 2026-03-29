@@ -321,6 +321,7 @@ class OpenRouterProvider(AIProvider):
         Return a JSON object with:
         - naturalness_score (integer 0-100): The naturalness score
         - feedback_message (string): Short encouraging message (max 100 chars)
+        - score_label (string): Qualitative label based on score - "Excellent" for 90-100, "Very Good" for 75-89, "Good" for 60-74, "Fair" for 40-59, "Needs Improvement" for 0-39
         - suggestions (array): Exactly 3 example sentences showing better usage
         - grammar_notes (string|null): Brief grammar tip if needed, null if sentence is perfect
         - encouragement (string): Motivational closing message
@@ -375,6 +376,7 @@ class OpenRouterProvider(AIProvider):
                 naturalness_score=data.get("naturalness_score", 0),
                 feedback_message=data.get("feedback_message", ""),
                 suggestions=data.get("suggestions", []),
+                score_label=data.get("score_label", "Good"),
                 grammar_notes=data.get("grammar_notes"),
                 encouragement=data.get("encouragement", ""),
                 user_sentence=user_sentence,
