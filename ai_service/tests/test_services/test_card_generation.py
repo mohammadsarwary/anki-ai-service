@@ -1,41 +1,35 @@
 import pytest
-from unittest.mock import patch,MagicMock
+from unittest.mock import AsyncMock, MagicMock
+
+from app.core.exceptions import APIRateLimitError, InvalidResponseError
 from app.services.card_generation_service import CardGenerationService
-from app.core.exceptions import APIRateLimitError,APIProviderError
-import openai
-from app.models.request import Level  
-from app.core.exceptions import InvalidResponseError 
-
-@pytest.mark.asyncio
-async def test_generate_card_rate_limit():
-    service = CardGenerationService()
-    with patch('app.services.card_generation_service.client') as mock_client:
-        mock_client.chat.completions.create.side_effect = openai.RateLimitError(
-            "Rate limit",
-            response=MagicMock(),
-            body={}
-        )
-        with pytest.raises(APIRateLimitError):
-            await service.generate_card(
-                term="test",
-                language="en",
-                target_language="fa",
-                level="beginner"  
-            )
 
 
 @pytest.mark.asyncio
-async def test_generate_card_json_parse_error():
+async def test_generate_card_delegates_to_provider_errors():
     service = CardGenerationService()
-    with patch("app.services.card_generation_service.client") as mock_client:
-        mock_client.chat.completions.create.return_value = MagicMock(
-            choices=[MagicMock(message=MagicMock(content="invalid json"))]
+    service.provider = MagicMock()
+    service.provider.generate_card = AsyncMock(side_effect=APIRateLimitError())
+
+    with pytest.raises(APIRateLimitError):
+        await service.generate_card(
+            term="test",
+            language="en",
+            target_language="fa",
+            level="beginner",
         )
-        
-        with pytest.raises(InvalidResponseError):
-            await service.generate_card(
-                term="test",
-                language="en",
-                target_language="fa",
-                level="beginner"
-            )
+
+
+@pytest.mark.asyncio
+async def test_generate_card_invalid_response_bubbles_up():
+    service = CardGenerationService()
+    service.provider = MagicMock()
+    service.provider.generate_card = AsyncMock(side_effect=InvalidResponseError())
+
+    with pytest.raises(InvalidResponseError):
+        await service.generate_card(
+            term="test",
+            language="en",
+            target_language="fa",
+            level="beginner",
+        )

@@ -3,16 +3,11 @@
 from openai import OpenAI
 import json
 import openai
-import re
 
 from app.providers.base import AIProvider
 from app.models.response import (
-    CardBack,
     CardGenerationFromTopicResponse,
     CardGenerationResponse,
-    TTS,
-    Pronunciation,
-    Example,
     PracticeSentenceData,
     PracticeSentenceResponse
 )
@@ -74,8 +69,12 @@ class OpenRouterProvider(AIProvider):
             QUALITY RULES:
             - Each card MUST have a UNIQUE word (no duplicates)
             - Words must be directly relevant to "{topic}"
+            - "front" must be a single useful word or short phrase with no numbering
+            - "definition" must be concise, learner-friendly, and never empty
+            - "examples" must contain at least one natural sentence
             - Examples must be natural and practical
             - Definitions in {target_language}, examples in {language}
+            - If you are unsure, still return your best valid JSON guess and keep every required field non-empty
 
             Generate {count} unique flashcards now:'''
 
@@ -107,10 +106,7 @@ class OpenRouterProvider(AIProvider):
         logger.info("AI response: %s",response)
         raw=response.choices[0].message.content.strip()
         logger.info("Raw Response: %s",raw)
-
-        # raw=re.sub(r'^```(?:json)?\s*', '', raw) 
-        # raw=re.sub(r'\s*```$', '', raw)
-        # raw=raw.strip()
+        raw = self._clean_json_text(raw)
 
         try:
             data=json.loads(raw)
@@ -119,56 +115,10 @@ class OpenRouterProvider(AIProvider):
             logger.error("Failed to parse AI response as JSON: %s", raw)
             raise InvalidResponseError()
 
-        #parse cards list
-        cards=[]
-        for card_data in data.get("cards",[]):
-            back_data=card_data.get("back",{})
+        if not isinstance(data, dict):
+            raise InvalidResponseError(detail="AI response must be a JSON object with a 'cards' field")
 
-            # parse pronuncation
-            pronunciation=None
-            pronunciation_data=back_data.get("pronunciation",{})
-
-            if pronunciation_data:
-                tts=None
-                tts_data=pronunciation_data.get("tts")
-                if tts_data:
-                    tts=TTS(
-                        text=tts_data.get("text",""),
-                        lang=tts_data.get("lang", "en-US"),
-                    )
-                pronunciation=Pronunciation(
-                    text=pronunciation_data.get("text",""),
-                    hint=pronunciation_data.get("hint"),
-                    tts=tts,
-                )
-            
-            #parse examples
-            example_list=[]
-            for ex in back_data.get("examples",[]):
-                tts=TTS(
-                    text=ex.get("tts",{}).get("text",""),
-                    lang=ex.get("tts",{}).get("lang", "en-US"),
-                )
-                example_list.append(Example(
-                    text=ex.get("text",""),
-                    tts=tts,
-                )
-                )
-            
-            # create card
-            cards.append(CardGenerationResponse(
-                front=card_data.get("front",""),
-                back=CardBack(
-                    definition=back_data.get("definition",""),
-                    pronunciation=pronunciation,
-                    part_of_speech=back_data.get("part_of_speech"),
-                    usage=back_data.get("usage"),
-                    examples=example_list,
-                    memory_tip=back_data.get("memory_tip"),
-                ),
-                difficulty=card_data.get("difficulty",'medium')
-            ))
-        
+        cards = self._parse_card_list(data.get("cards"), expected_count=count)
         return CardGenerationFromTopicResponse(cards=cards)
 
             
@@ -201,6 +151,12 @@ class OpenRouterProvider(AIProvider):
         - Source Language: "{language}"
         - Target Language: "{target_language}"
 
+        QUALITY RULES:
+        - "definition" must be short, clear, and non-empty
+        - "examples" must contain at least one natural sentence
+        - "front" must exactly match "{term}"
+        - Use difficulty from: easy, medium, hard
+
         RESPOND WITH JSON ONLY:'''
                 
 
@@ -232,10 +188,7 @@ class OpenRouterProvider(AIProvider):
 
         raw=response.choices[0].message.content.strip()
         logger.info("Raw response: %s", raw)
-
-        raw=re.sub(r'^```(?:json)?\s*', '', raw) 
-        raw=re.sub(r'\s*```$', '', raw)
-        raw=raw.strip()
+        raw = self._clean_json_text(raw)
 
         try:
             data=json.loads(raw)
@@ -243,52 +196,10 @@ class OpenRouterProvider(AIProvider):
             logger.error("Failed to parse AI response as JSON: %s", raw)
             raise InvalidResponseError()
 
-        back_data=data.get("back",{})
-
-        # 1.parse pronunciation 
-        pronunciation=None
-        pronunciation_data=back_data.get("pronunciation",{})
-        if pronunciation_data:
-            tts=None
-            tts_data=pronunciation_data.get("tts")
-            if tts_data:
-                tts=TTS(
-                    text=tts_data.get("text",""),
-                    lang=tts_data.get("lang","en-US")
-                )
-            pronunciation=Pronunciation(
-                text=pronunciation_data.get("text",""),
-                hint=pronunciation_data.get("hint",""),
-                tts=tts
-            )
-
-        # 2.parse examples lists
-        example_list=[]
-        for ex in back_data.get("examples",[]):
-            tts=None
-            if ex.get("tts"):
-                tts=TTS(
-                    text=ex["tts"].get("text",""),
-                    lang=ex["tts"].get("lang","en-US")
-                )
-            example_list.append(Example(
-                text=ex.get("text",""),
-                tts=tts
-            ))
-        
-        # 3.create Cardback
-        return CardGenerationResponse(
-            front=data.get("front", term),
-            back=CardBack(
-                definition=back_data.get("definition", ""),
-                examples=example_list,
-                pronunciation=pronunciation,
-                part_of_speech=back_data.get("part_of_speech", ""),
-                usage=back_data.get("usage", ""),
-                memory_tip=back_data.get("memory_tip", ""),
-            ),
-            difficulty=data.get("difficulty", "medium"),
-        )
+        card = self._parse_card(data, default_front=term)
+        if card.front != term:
+            raise InvalidResponseError(detail="AI response changed the requested term")
+        return card
 
 
     async def generate_practice_sentence(
@@ -360,9 +271,7 @@ class OpenRouterProvider(AIProvider):
         
         raw=response.choices[0].message.content.strip()
         logger.info("Raw response: %s", raw)
-        raw=re.sub(r'^```(?:json)?\s*', '', raw)
-        raw=re.sub(r'\s*```$', '', raw)
-        raw=raw.strip()
+        raw = self._clean_json_text(raw)
 
         try:
             data=json.loads(raw)

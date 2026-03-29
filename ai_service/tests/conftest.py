@@ -1,11 +1,15 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.core.deps import get_current_user
 
 @pytest.fixture
 def client():
     """Test client for API tests."""
-    return TestClient(app)
+    app.dependency_overrides[get_current_user] = lambda: {"user_id": 1}
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
 
 
 

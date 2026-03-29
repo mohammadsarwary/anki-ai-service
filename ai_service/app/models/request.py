@@ -89,6 +89,8 @@ class CardGenerationFromTopicRequest(BaseModel):
 
     count:int=Field(
         default=5,
+        ge=1,
+        le=10,
         description="Number of flashcards to generate.",
     )
 

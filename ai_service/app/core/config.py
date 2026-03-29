@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str = "AIzaSyBPl8iUuzfB8saYFk-Rlmb3f7oZhdzbt6s"
     GOOGLE_GEMINI_MODEL: str = "gemini-3-flash-preview"
 
-    CEREBRAS_API_KEY: str = "csk-2jkwfhnpvyjhrwy8ymm94ht8dh2wnt24858m94fjx6cycrec"
-    CEREBRAS_MODEL: str = "gpt-oss-120b"
+    CEREBRAS_API_KEY: str = "csk-2m9wdwmvewn64xerppct8pfre9wrx2vpmthw28t3rvntx2y5"
+    CEREBRAS_MODEL: str = "llama3.1-8b"
     CEREBRAS_BASE_URL: str = "https://api.cerebras.ai/v1"
 
     LARAVEL_API_URL: str = "http://anki-ai-backend.test"  

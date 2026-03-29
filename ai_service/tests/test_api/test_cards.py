@@ -1,6 +1,4 @@
-import pytest
 from unittest.mock import patch, AsyncMock
-from app.models.request import Level
 
 def test_generate_card_success(client, mock_card_response):
     with patch(
@@ -24,3 +22,13 @@ def test_generate_card_invalid_level(client):
     })
     assert response.status_code == 422
     assert "validation_error" in response.json()["type"]
+
+
+def test_generate_from_topic_invalid_count(client):
+    response = client.post("/api/v1/generate-from-topic", json={
+        "topic": "common travel vocabulary",
+        "count": 50,
+        "level": "beginner",
+    })
+    assert response.status_code == 422
+    assert response.json()["type"] == "validation_error"

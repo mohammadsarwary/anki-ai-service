@@ -1,18 +1,13 @@
 """Google Gemini AI provider implementation."""
 
 import json
-import re
 
 import google.generativeai as genai
 
 from app.providers.base import AIProvider
 from app.models.response import (
-    CardBack,
     CardGenerationFromTopicResponse,
     CardGenerationResponse,
-    TTS,
-    Pronunciation,
-    Example,
 )
 from app.core.config import settings
 from app.core.exceptions import APIProviderError, InvalidResponseError
@@ -69,6 +64,12 @@ class GoogleGeminiProvider(AIProvider):
         - Language: "{language}"
         - Target Language: "{target_language}"
 
+        QUALITY RULES:
+        - Return exactly {count} cards
+        - Each "front" must be unique
+        - "definition" must be concise and non-empty
+        - "examples" must contain at least one natural sentence
+
         RESPOND WITH JSON ONLY:'''
         
         logger.info("Generating cards from topic: '%s'", topic)
@@ -81,10 +82,7 @@ class GoogleGeminiProvider(AIProvider):
             logger.error("Google Gemini error: %s", e)
             raise APIProviderError()
         
-        # Clean markdown if present
-        raw = re.sub(r'^```(?:json)?\s*', '', raw)
-        raw = re.sub(r'\s*```$', '', raw)
-        raw = raw.strip()
+        raw = self._clean_json_text(raw)
         
         try:
             data = json.loads(raw)
@@ -92,12 +90,7 @@ class GoogleGeminiProvider(AIProvider):
             logger.error("Failed to parse AI response as JSON: %s", raw)
             raise InvalidResponseError()
         
-        # Parse cards
-        cards = []
-        for card_data in data:
-            card = self._parse_card(card_data)
-            cards.append(card)
-        
+        cards = self._parse_card_list(data, expected_count=count)
         return CardGenerationFromTopicResponse(cards=cards)
     
     async def generate_card(
@@ -138,6 +131,12 @@ class GoogleGeminiProvider(AIProvider):
         - Source Language: "{language}"
         - Target Language: "{target_language}"
 
+        QUALITY RULES:
+        - "front" must exactly match "{term}"
+        - "definition" must be concise and non-empty
+        - "examples" must contain at least one natural sentence
+        - Use difficulty from: easy, medium, hard
+
         RESPOND WITH JSON ONLY:'''
         
         logger.info("Generating card for term: '%s'", term)
@@ -150,10 +149,7 @@ class GoogleGeminiProvider(AIProvider):
             logger.error("Google Gemini error: %s", e)
             raise APIProviderError()
         
-        # Clean markdown if present
-        raw = re.sub(r'^```(?:json)?\s*', '', raw)
-        raw = re.sub(r'\s*```$', '', raw)
-        raw = raw.strip()
+        raw = self._clean_json_text(raw)
         
         try:
             data = json.loads(raw)
@@ -161,53 +157,7 @@ class GoogleGeminiProvider(AIProvider):
             logger.error("Failed to parse AI response as JSON: %s", raw)
             raise InvalidResponseError()
         
-        return self._parse_card(data, default_term=term)
-    
-    def _parse_card(self, data: dict, default_term: str = "") -> CardGenerationResponse:
-        """Parse card data from AI response."""
-        
-        back_data = data.get("back", {})
-        
-        # Parse pronunciation
-        pronunciation = None
-        pronunciation_data = back_data.get("pronunciation", {})
-        if pronunciation_data:
-            tts = None
-            tts_data = pronunciation_data.get("tts")
-            if tts_data:
-                tts = TTS(
-                    text=tts_data.get("text", ""),
-                    lang=tts_data.get("lang", "en-US"),
-                )
-            pronunciation = Pronunciation(
-                text=pronunciation_data.get("text", ""),
-                hint=pronunciation_data.get("hint"),
-                tts=tts,
-            )
-        
-        # Parse examples
-        example_list = []
-        for ex in back_data.get("examples", []):
-            tts = None
-            if ex.get("tts"):
-                tts = TTS(
-                    text=ex["tts"].get("text", ""),
-                    lang=ex["tts"].get("lang", "en-US"),
-                )
-            example_list.append(Example(
-                text=ex.get("text", ""),
-                tts=tts,
-            ))
-        
-        return CardGenerationResponse(
-            front=data.get("front", default_term),
-            back=CardBack(
-                definition=back_data.get("definition", ""),
-                pronunciation=pronunciation,
-                part_of_speech=back_data.get("part_of_speech"),
-                usage=back_data.get("usage"),
-                examples=example_list,
-                memory_tip=back_data.get("memory_tip"),
-            ),
-            difficulty=data.get("difficulty", "medium"),
-        )
+        card = self._parse_card(data, default_front=term)
+        if card.front != term:
+            raise InvalidResponseError(detail="AI response changed the requested term")
+        return card
