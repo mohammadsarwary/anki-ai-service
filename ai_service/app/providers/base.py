@@ -58,6 +58,48 @@ class AIProvider(ABC):
         return cleaned.strip()
 
     @staticmethod
+    def _is_likely_truncated_json(raw: str) -> bool:
+        """Heuristic for detecting JSON that was cut off mid-generation."""
+        cleaned = raw.strip()
+        if not cleaned or cleaned[0] not in "{[":
+            return False
+
+        stack: list[str] = []
+        in_string = False
+        escape = False
+
+        for char in cleaned:
+            if in_string:
+                if escape:
+                    escape = False
+                elif char == "\\":
+                    escape = True
+                elif char == '"':
+                    in_string = False
+                continue
+
+            if char == '"':
+                in_string = True
+            elif char in "{[":
+                stack.append(char)
+            elif char == "}":
+                if not stack or stack[-1] != "{":
+                    return False
+                stack.pop()
+            elif char == "]":
+                if not stack or stack[-1] != "[":
+                    return False
+                stack.pop()
+
+        if in_string or cleaned.endswith("\\"):
+            return True
+
+        if stack:
+            return True
+
+        return cleaned[-1] in {",", ":"}
+
+    @staticmethod
     def _require_non_empty_string(value: object, field_name: str) -> str:
         if not isinstance(value, str) or not value.strip():
             raise InvalidResponseError(detail=f"Missing or invalid '{field_name}' in AI response")
