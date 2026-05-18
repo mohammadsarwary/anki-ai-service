@@ -1,0 +1,9 @@
+.venv/
+django_backend/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+db.sqlite3
+staticfiles/
+media/
+.env

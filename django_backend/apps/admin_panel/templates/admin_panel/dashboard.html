@@ -1,0 +1,43 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<style>
+  .aa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .aa-card { border: 1px solid var(--hairline-color, #ddd); border-radius: 8px; padding: 16px; background: var(--body-bg, #fff); }
+  .aa-card strong { display: block; font-size: 28px; margin-top: 8px; }
+  .aa-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  .aa-list { margin: 0; padding-left: 18px; }
+</style>
+<h1>Anki AI Dashboard</h1>
+<div class="aa-grid">
+  <div class="aa-card">Users<strong>{{ stats.total_users }}</strong></div>
+  <div class="aa-card">Decks<strong>{{ stats.total_decks }}</strong></div>
+  <div class="aa-card">Cards<strong>{{ stats.total_cards }}</strong></div>
+  <div class="aa-card">Reviews Today<strong>{{ stats.reviews_today }}</strong></div>
+  <div class="aa-card">Active Users Week<strong>{{ stats.active_users_week }}</strong></div>
+  <div class="aa-card">AI Today<strong>{{ stats.ai_generations_today }}</strong></div>
+  <div class="aa-card">Pending AI Jobs<strong>{{ stats.pending_ai_jobs }}</strong></div>
+  <div class="aa-card">Failed AI Jobs<strong>{{ stats.failed_ai_jobs }}</strong></div>
+</div>
+<div class="aa-columns">
+  <div class="aa-card">
+    <h2>Top Users</h2>
+    <ol class="aa-list">
+      {% for user in top_users %}
+        <li>{{ user.email }} - {{ user.reviews_count }} reviews</li>
+      {% empty %}
+        <li>No users yet</li>
+      {% endfor %}
+    </ol>
+  </div>
+  <div class="aa-card">
+    <h2>Popular Public Decks</h2>
+    <ol class="aa-list">
+      {% for deck in popular_decks %}
+        <li>{{ deck.name }} - {{ deck.cards_count }} cards</li>
+      {% empty %}
+        <li>No public decks yet</li>
+      {% endfor %}
+    </ol>
+  </div>
+</div>
+{% endblock %}
