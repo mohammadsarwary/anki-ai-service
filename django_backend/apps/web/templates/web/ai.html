@@ -1,0 +1,109 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}AI Generator - Anki AI{% endblock %}
+
+{% block content %}
+{{ cards_json|json_script:"cards-data" }}
+<section class="workspace" {% if selected_deck %}data-ai-generate-url="{% url 'web:ai_generate' selected_deck.id %}" data-ai-save-url="{% url 'web:ai_save' selected_deck.id %}"{% endif %}>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">AI Generator</p>
+      <h1>Create Cards</h1>
+    </div>
+    <span class="avatar">{{ request.user.name|first|default:"U" }}</span>
+  </header>
+
+  {% if not selected_deck %}
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/></svg>
+      </div>
+      <h2>No deck selected</h2>
+      <p>Create a deck first, then come back here to generate cards with AI.</p>
+    </div>
+  {% else %}
+    <section class="ai-panel spacious" id="ai-generator">
+      <div class="ai-copy">
+        <div class="ai-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/><path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z"/></svg>
+        </div>
+        <div>
+          <p class="eyebrow">AI tutor</p>
+          <h2>Generate a fresh set for {{ selected_deck.name }}</h2>
+          <p class="muted">Pick a topic and review the editable preview before saving.</p>
+        </div>
+      </div>
+      <form method="get" class="deck-select-form">
+        <label>
+          <span>Target deck</span>
+          <select name="deck_id" onchange="this.form.submit()">
+            {% for deck in decks %}
+              <option value="{{ deck.id }}" {% if deck.id == selected_deck_id %}selected{% endif %}>{{ deck.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </form>
+      <form id="ai-generate-form" class="ai-form ai-form-wide">
+        {% csrf_token %}
+        <label class="topic-field">
+          <span>Topic</span>
+          <input name="topic" type="text" placeholder="At the airport" required>
+        </label>
+        <label>
+          <span>Count</span>
+          <select name="count">
+            <option value="5">5 cards</option>
+            <option value="10" selected>10 cards</option>
+            <option value="15">15 cards</option>
+          </select>
+        </label>
+        <label>
+          <span>Level</span>
+          <select name="level">
+            <option value="beginner" selected>Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </label>
+        <input type="hidden" name="language" value="en">
+        <input type="hidden" name="target_language" value="fa">
+        <button class="btn btn-primary" type="submit">
+          Generate
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/></svg>
+        </button>
+      </form>
+    </section>
+
+    <section class="ai-loading" id="ai-loading" hidden>
+      <div class="progress-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50"/><circle cx="60" cy="60" r="50"/></svg><span>AI</span></div>
+      <div>
+        <p class="eyebrow">Generating</p>
+        <h2>Building your card set</h2>
+        <p class="muted">Our AI is hand-picking useful words for this deck.</p>
+      </div>
+      <div class="skeleton-stack">
+        <span></span><span></span><span></span>
+      </div>
+    </section>
+
+    <section class="ai-preview" id="ai-preview" hidden>
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Preview</p>
+          <h2 id="ai-preview-title">Generated cards</h2>
+        </div>
+        <button class="btn btn-primary" type="button" id="save-ai-cards">
+          Save to deck
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+      </div>
+      <div id="ai-preview-list" class="preview-list"></div>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'web/cards.js' %}"></script>
+{% endblock %}

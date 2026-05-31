@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anki AI API Tester</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-soft: #eef3f7;
+      --text: #17202a;
+      --muted: #697586;
+      --line: #d8dee7;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --danger: #b42318;
+      --code: #101828;
+      --code-bg: #111827;
+      --warn: #a15c07;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: #fbfcfd;
+      padding: 20px;
+      overflow: auto;
+    }
+
+    .main {
+      padding: 22px;
+      overflow: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: 22px;
+    }
+
+    h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    h3 {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin: 18px 0 8px;
+      text-transform: uppercase;
+    }
+
+    .status {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 148px minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    label {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+      padding: 10px 11px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+    }
+
+    textarea {
+      min-height: 260px;
+      resize: vertical;
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      tab-size: 2;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn {
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      font-weight: 700;
+      gap: 6px;
+      min-height: 38px;
+      padding: 8px 12px;
+    }
+
+    .btn:hover {
+      background: var(--panel-soft);
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn.primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .btn.danger {
+      color: var(--danger);
+    }
+
+    .endpoint {
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 54px minmax(0, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 9px;
+      text-align: left;
+      width: 100%;
+    }
+
+    .endpoint:hover {
+      border-color: #9fb0c2;
+      background: var(--panel-soft);
+    }
+
+    .method {
+      border-radius: 5px;
+      color: #fff;
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 6px;
+      text-align: center;
+    }
+
+    .GET { background: #2563eb; }
+    .POST { background: #0f766e; }
+    .PUT { background: #7c3aed; }
+    .PATCH { background: #a15c07; }
+    .DELETE { background: #b42318; }
+
+    .path {
+      color: var(--code);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .result-header {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .result-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 5px 8px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border-radius: 8px;
+      color: #e5e7eb;
+      margin: 0;
+      min-height: 360px;
+      overflow: auto;
+      padding: 16px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .error {
+      color: #fecaca;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    @media (max-width: 920px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-bottom: 1px solid var(--line);
+        border-right: 0;
+        max-height: 48vh;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>API Tester</h1>
+        <span class="status" id="tokenStatus">No token</span>
+      </div>
+
+      <div class="panel stack">
+        <div>
+          <label for="baseUrl">Base URL</label>
+          <input id="baseUrl" value="http://127.0.0.1:8000">
+        </div>
+        <div>
+          <label for="token">Bearer Token</label>
+          <div class="row">
+            <input id="token" placeholder="Paste token here">
+            <button class="btn" id="saveToken" type="button">Save</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn danger" id="clearToken" type="button">Clear Token</button>
+          <button class="btn" id="healthCheck" type="button">Health</button>
+        </div>
+      </div>
+
+      <h3>Auth</h3>
+      <div id="authEndpoints"></div>
+
+      <h3>Core APIs</h3>
+      <div id="coreEndpoints"></div>
+
+      <h3>AI and Sync</h3>
+      <div id="aiEndpoints"></div>
+    </aside>
+
+    <main class="main stack">
+      <section class="panel stack">
+        <div class="grid">
+          <div>
+            <label for="method">Method</label>
+            <select id="method">
+              <option>GET</option>
+              <option>POST</option>
+              <option>PUT</option>
+              <option>PATCH</option>
+              <option>DELETE</option>
+            </select>
+          </div>
+          <div>
+            <label for="path">Endpoint</label>
+            <input id="path" value="/health">
+          </div>
+        </div>
+
+        <div>
+          <label for="body">JSON Body</label>
+          <textarea id="body" spellcheck="false"></textarea>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn primary" id="send" type="button">Send Request</button>
+          <button class="btn" id="formatBody" type="button">Format JSON</button>
+          <button class="btn" id="clearBody" type="button">Clear Body</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="result-header">
+          <h2>Response</h2>
+          <div class="result-meta">
+            <span class="pill" id="statusCode">Status: -</span>
+            <span class="pill" id="duration">Time: -</span>
+          </div>
+        </div>
+        <pre id="response">{}</pre>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const examples = {
+      auth: [
+        {
+          method: "POST",
+          path: "/api/auth/register",
+          label: "Register",
+          body: {
+            name: "Test User",
+            email: "test@example.com",
+            password: "password123"
+          }
+        },
+        {
+          method: "POST",
+          path: "/api/auth/login",
+          label: "Login",
+          body: {
+            email: "test@example.com",
+            password: "password123"
+          }
+        },
+        { method: "GET", path: "/api/auth/me", label: "Me" },
+        { method: "GET", path: "/api/auth/verify-token", label: "Verify Token" },
+        { method: "POST", path: "/api/auth/logout", label: "Logout" }
+      ],
+      core: [
+        { method: "GET", path: "/health", label: "Health" },
+        { method: "GET", path: "/api/decks", label: "Decks" },
+        {
+          method: "POST",
+          path: "/api/decks",
+          label: "Create Deck",
+          body: {
+            name: "Starter Deck",
+            description: "Local API tester deck",
+            is_public: false,
+            category: "General"
+          }
+        },
+        { method: "GET", path: "/api/cards", label: "Cards" },
+        {
+          method: "POST",
+          path: "/api/cards",
+          label: "Create Card",
+          body: {
+            deck_id: "replace-with-deck-uuid",
+            front: "Hello",
+            back: "A greeting",
+            difficulty: "easy",
+            tags: ["starter"]
+          }
+        },
+        { method: "GET", path: "/api/reviews/due-today", label: "Due Today" },
+        { method: "GET", path: "/api/discover/categories", label: "Categories" },
+        { method: "GET", path: "/api/streaks/current", label: "Current Streak" },
+        { method: "GET", path: "/api/challenges/daily", label: "Daily Challenges" }
+      ],
+      ai: [
+        {
+          method: "POST",
+          path: "/api/ai/generate-from-topic",
+          label: "Generate Topic",
+          body: {
+            topic: "English travel phrases",
+            count: 5,
+            difficulty: "easy"
+          }
+        },
+        {
+          method: "POST",
+          path: "/api/ai/generate-from-text",
+          label: "Generate Text",
+          body: {
+            text: "The train leaves at noon. Please buy a ticket before boarding.",
+            count: 3
+          }
+        },
+        { method: "GET", path: "/api/ai/usage", label: "AI Usage" },
+        {
+          method: "POST",
+          path: "/api/ai/sentence-practice",
+          label: "Sentence Practice",
+          body: {
+            word: "journey",
+            level: "A2"
+          }
+        },
+        { method: "POST", path: "/api/sync/pull", label: "Sync Pull", body: { since: null } },
+        { method: "POST", path: "/api/sync/push", label: "Sync Push", body: { decks: [], cards: [], reviews: [] } }
+      ]
+    };
+
+    const baseUrl = document.getElementById("baseUrl");
+    const token = document.getElementById("token");
+    const tokenStatus = document.getElementById("tokenStatus");
+    const method = document.getElementById("method");
+    const path = document.getElementById("path");
+    const body = document.getElementById("body");
+    const response = document.getElementById("response");
+    const statusCode = document.getElementById("statusCode");
+    const duration = document.getElementById("duration");
+
+    function setToken(value) {
+      token.value = value || "";
+      localStorage.setItem("ankiAiApiToken", token.value);
+      tokenStatus.textContent = token.value ? "Token saved" : "No token";
+    }
+
+    function fillRequest(item) {
+      method.value = item.method;
+      path.value = item.path;
+      body.value = item.body ? JSON.stringify(item.body, null, 2) : "";
+    }
+
+    function renderEndpoints(id, items) {
+      const container = document.getElementById(id);
+      container.innerHTML = "";
+      items.forEach((item) => {
+        const button = document.createElement("button");
+        button.className = "endpoint";
+        button.type = "button";
+        button.innerHTML = `
+          <span class="method ${item.method}">${item.method}</span>
+          <span>
+            <span class="path">${item.path}</span>
+            <span class="meta">${item.label}</span>
+          </span>
+        `;
+        button.addEventListener("click", () => fillRequest(item));
+        container.appendChild(button);
+      });
+    }
+
+    function showResponse(data, isError = false) {
+      response.className = isError ? "error" : "";
+      response.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    }
+
+    function requestBody() {
+      if (!body.value.trim()) {
+        return undefined;
+      }
+      return JSON.stringify(JSON.parse(body.value));
+    }
+
+    async function sendRequest() {
+      const cleanBase = baseUrl.value.replace(/\/+$/, "");
+      const cleanPath = path.value.startsWith("/") ? path.value : `/${path.value}`;
+      const headers = { Accept: "application/json" };
+      const currentToken = token.value.trim();
+      const started = performance.now();
+      let payload;
+
+      if (currentToken) {
+        headers.Authorization = `Bearer ${currentToken}`;
+      }
+
+      if (!["GET", "HEAD"].includes(method.value)) {
+        headers["Content-Type"] = "application/json";
+        try {
+          payload = requestBody();
+        } catch (error) {
+          statusCode.textContent = "Status: invalid JSON";
+          duration.textContent = "Time: -";
+          showResponse(error.message, true);
+          return;
+        }
+      }
+
+      statusCode.textContent = "Status: sending";
+      duration.textContent = "Time: -";
+      showResponse({});
+
+      try {
+        const result = await fetch(`${cleanBase}${cleanPath}`, {
+          method: method.value,
+          headers,
+          body: payload
+        });
+        const text = await result.text();
+        const elapsed = Math.round(performance.now() - started);
+
+        statusCode.textContent = `Status: ${result.status} ${result.statusText}`;
+        duration.textContent = `Time: ${elapsed}ms`;
+
+        let parsed = text;
+        try {
+          parsed = text ? JSON.parse(text) : null;
+        } catch (error) {
+          parsed = text;
+        }
+
+        showResponse(parsed, !result.ok);
+
+        const maybeToken = parsed && parsed.data && parsed.data.token;
+        if (maybeToken) {
+          setToken(maybeToken);
+        }
+      } catch (error) {
+        statusCode.textContent = "Status: request failed";
+        duration.textContent = "Time: -";
+        showResponse(error.message, true);
+      }
+    }
+
+    document.getElementById("send").addEventListener("click", sendRequest);
+    document.getElementById("saveToken").addEventListener("click", () => setToken(token.value.trim()));
+    document.getElementById("clearToken").addEventListener("click", () => setToken(""));
+    document.getElementById("healthCheck").addEventListener("click", () => {
+      fillRequest({ method: "GET", path: "/health" });
+      sendRequest();
+    });
+    document.getElementById("formatBody").addEventListener("click", () => {
+      if (body.value.trim()) {
+        body.value = JSON.stringify(JSON.parse(body.value), null, 2);
+      }
+    });
+    document.getElementById("clearBody").addEventListener("click", () => {
+      body.value = "";
+    });
+
+    renderEndpoints("authEndpoints", examples.auth);
+    renderEndpoints("coreEndpoints", examples.core);
+    renderEndpoints("aiEndpoints", examples.ai);
+    setToken(localStorage.getItem("ankiAiApiToken") || "");
+  </script>
+</body>
+</html>

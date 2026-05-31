@@ -1,0 +1,106 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Decks - Anki AI{% endblock %}
+
+{% block content %}
+<section class="workspace">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Deck Library</p>
+      <h1>Decks</h1>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary" type="button" data-open-modal="new-deck-modal">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        New Deck
+      </button>
+      <span class="deck-summary">{{ deck_count }} deck{{ deck_count|pluralize }}</span>
+      <span class="avatar">{{ request.user.name|first|default:"U" }}</span>
+    </div>
+  </header>
+
+  <section class="stats-grid" aria-label="Deck statistics">
+    <article class="stat-card primary"><span>Total decks</span><strong>{{ deck_count }}</strong></article>
+    <article class="stat-card"><span>Total cards</span><strong>{{ total_cards }}</strong></article>
+    <article class="stat-card easy"><span>Public</span><strong>{{ public_decks }}</strong></article>
+    <article class="stat-card medium"><span>Private</span><strong>{{ private_decks }}</strong></article>
+  </section>
+
+  {% if decks %}
+    <section class="deck-card-grid">
+      {% for deck in decks %}
+        <article class="deck-card">
+          <div class="deck-card-cover">
+            {% if deck.image_url %}
+              <img src="{{ deck.image_url }}" alt="">
+            {% else %}
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6a2 2 0 0 1 2-2h12v16H6a2 2 0 0 1-2-2V6Z"/><path d="M8 8h7"/><path d="M8 12h5"/></svg>
+            {% endif %}
+          </div>
+          <div class="deck-card-body">
+            <span class="difficulty medium">{{ deck.card_count }} cards</span>
+            <h2>{{ deck.name }}</h2>
+            <p>{{ deck.description|default:"No description yet."|truncatechars:120 }}</p>
+            <div class="deck-card-actions">
+              <a class="btn btn-primary" href="{% url 'web:deck_cards' deck.id %}">Manage cards</a>
+              <a class="btn btn-soft" href="{% url 'web:ai' %}?deck_id={{ deck.id }}">Generate AI</a>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6a2 2 0 0 1 2-2h12v16H6a2 2 0 0 1-2-2V6Z"/><path d="M8 8h7"/><path d="M8 12h5"/></svg>
+      </div>
+      <h2>No decks yet</h2>
+      <p>Create your first deck, then add cards manually or generate them with AI.</p>
+      <button class="btn btn-primary" type="button" data-open-modal="new-deck-modal">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        New Deck
+      </button>
+    </div>
+  {% endif %}
+</section>
+
+<div class="modal" id="new-deck-modal" {% if not show_deck_modal %}hidden{% endif %}>
+  <div class="modal-panel">
+    <button class="modal-close" type="button" data-close-modal aria-label="Close">x</button>
+    <p class="eyebrow">New deck</p>
+    <h2>Create a deck</h2>
+    <form method="post" action="{% url 'web:deck_create' %}" class="card-form">
+      {% csrf_token %}
+      {% if deck_form.non_field_errors %}
+        <div class="form-error">{{ deck_form.non_field_errors|join:", " }}</div>
+      {% endif %}
+      <label>
+        <span>Name</span>
+        <input name="name" type="text" placeholder="Travel English" value="{{ deck_form.name.value|default:'' }}" required>
+        {% if deck_form.name.errors %}<small class="field-error">{{ deck_form.name.errors|join:", " }}</small>{% endif %}
+      </label>
+      <label>
+        <span>Description</span>
+        <textarea name="description" rows="4" placeholder="Airport, hotel, and daily travel words">{{ deck_form.description.value|default:'' }}</textarea>
+      </label>
+      <label>
+        <span>Category</span>
+        <input name="category" type="text" placeholder="Travel" value="{{ deck_form.category.value|default:'' }}">
+      </label>
+      <label class="check-row">
+        <input name="is_public" type="checkbox" {% if deck_form.is_public.value %}checked{% endif %}>
+        <span>Make this deck public</span>
+      </label>
+      <button class="btn btn-primary btn-full" type="submit">
+        Create deck
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'web/cards.js' %}"></script>
+{% endblock %}

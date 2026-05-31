@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
 from apps.admin_panel.views import AdminDashboardView
+from anki_django.views import ApiTesterView
 
 
 def health(_request):
@@ -10,8 +11,9 @@ def health(_request):
 
 
 urlpatterns = [
-    path("", lambda request: JsonResponse({"service": "anki-ai-django", "admin": "/admin/"})),
+    path("", include("apps.web.urls")),
     path("health", health),
+    path("api-tester/", ApiTesterView.as_view()),
     path("admin/analytics/", AdminDashboardView.as_view()),
     path("admin/", admin.site.urls),
     path("api/", include("apps.accounts.urls")),

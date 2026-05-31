@@ -1,0 +1,84 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Anki AI{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    {% if request.user.is_authenticated %}
+      <aside class="sidebar">
+        <a class="brand" href="{% url 'web:home_page' %}">
+          <span class="brand-mark">A</span>
+          <span>
+            <strong>Anki AI</strong>
+            <small>Learning workspace</small>
+          </span>
+        </a>
+        <nav class="side-nav" aria-label="Primary">
+          <a class="side-link {% if active_nav == 'home' %}active{% endif %}" href="{% url 'web:home_page' %}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h14v-9.5"/><path d="M9 20v-6h6v6"/></svg>
+            Home
+          </a>
+          <a class="side-link {% if active_nav == 'decks' %}active{% endif %}" href="{% url 'web:decks' %}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6a2 2 0 0 1 2-2h12v16H6a2 2 0 0 1-2-2V6Z"/><path d="M8 8h7"/><path d="M8 12h5"/></svg>
+            Decks
+          </a>
+          <a class="side-link {% if active_nav == 'cards' %}active{% endif %}" href="{% url 'web:cards' %}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z"/><path d="M8 9h8M8 13h5"/></svg>
+            Cards
+          </a>
+          <a class="side-link {% if active_nav == 'ai' %}active{% endif %}" href="{% url 'web:ai' %}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/><path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z"/></svg>
+            AI Generator
+          </a>
+          {% if request.user.is_staff %}
+            <a class="side-link" href="{% url 'admin:index' %}">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2 3.4-.2-.1a1.7 1.7 0 0 0-2 .3l-.2.1-3.8-2.2-.1-.3a1.7 1.7 0 0 0-1.6-1.1h-.3L7.8 13h.1a1.7 1.7 0 0 0 .8-1.8v-.2l3.8-2.2.2.1a1.7 1.7 0 0 0 2-.3l.2-.1 2 3.4-.1.1a1.7 1.7 0 0 0-.3 1.9l.1.2 2.8.9Z"/></svg>
+              Admin
+            </a>
+          {% endif %}
+        </nav>
+        <div class="side-section">
+          <div class="side-heading">Decks</div>
+          <div class="side-decks">
+            {% for deck in request.user.decks.all %}
+              <a class="side-deck {% if deck.id == selected_deck_id %}active{% endif %}" href="{% url 'web:deck_cards' deck.id %}">
+                <span>{{ deck.name }}</span>
+                <small>{{ deck.card_count }}</small>
+              </a>
+            {% empty %}
+              <p class="side-empty">No decks yet</p>
+            {% endfor %}
+          </div>
+        </div>
+        <form method="post" action="{% url 'web:logout' %}" class="logout-form">
+          {% csrf_token %}
+          <button class="side-link logout" type="submit">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 4v16"/></svg>
+            Logout
+          </button>
+        </form>
+      </aside>
+    {% endif %}
+    <main class="main">
+      {% if messages %}
+        <div class="messages" aria-live="polite">
+          {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

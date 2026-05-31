@@ -1,0 +1,89 @@
+{% extends "web/base.html" %}
+
+{% block title %}Home - Anki AI{% endblock %}
+
+{% block content %}
+<section class="workspace">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Learning Dashboard</p>
+      <h1>Home</h1>
+    </div>
+    <div class="topbar-actions">
+      <a class="btn btn-soft" href="{% url 'web:decks' %}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6a2 2 0 0 1 2-2h12v16H6a2 2 0 0 1-2-2V6Z"/><path d="M8 8h7"/><path d="M8 12h5"/></svg>
+        Decks
+      </a>
+      <a class="btn btn-primary" href="{% url 'web:ai' %}">
+        AI Generator
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <section class="stats-grid" aria-label="Workspace statistics">
+    <article class="stat-card primary"><span>Decks</span><strong>{{ stats.decks }}</strong></article>
+    <article class="stat-card"><span>Cards</span><strong>{{ stats.cards }}</strong></article>
+    <article class="stat-card easy"><span>Easy</span><strong>{{ stats.easy }}</strong></article>
+    <article class="stat-card medium"><span>AI Cards</span><strong>{{ stats.ai }}</strong></article>
+  </section>
+
+  <section class="home-grid">
+    <article class="dashboard-panel">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Your decks</p>
+          <h2>Continue where you left off</h2>
+        </div>
+        <a class="btn btn-soft" href="{% url 'web:decks' %}">View all</a>
+      </div>
+      {% if decks %}
+        <div class="mini-list">
+          {% for deck in decks %}
+            <a class="mini-item" href="{% url 'web:deck_cards' deck.id %}">
+              <span class="term-icon">{{ deck.name|first|default:"D" }}</span>
+              <span>
+                <strong>{{ deck.name }}</strong>
+                <small>{{ deck.card_count }} cards</small>
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state compact">
+          <h2>No decks yet</h2>
+          <p>Create a deck in the mobile app or admin panel, then manage it here.</p>
+        </div>
+      {% endif %}
+    </article>
+
+    <article class="dashboard-panel">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Recent cards</p>
+          <h2>Latest updates</h2>
+        </div>
+        <a class="btn btn-soft" href="{% url 'web:cards' %}">Cards</a>
+      </div>
+      {% if recent_cards %}
+        <div class="mini-list">
+          {% for card in recent_cards %}
+            <a class="mini-item" href="{% url 'web:deck_cards' card.deck_id %}">
+              <span class="term-icon">{{ card.front|first|default:"C" }}</span>
+              <span>
+                <strong>{{ card.front }}</strong>
+                <small>{{ card.deck.name }}</small>
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state compact">
+          <h2>No cards yet</h2>
+          <p>Open a deck and add cards manually or with AI.</p>
+        </div>
+      {% endif %}
+    </article>
+  </section>
+</section>
+{% endblock %}

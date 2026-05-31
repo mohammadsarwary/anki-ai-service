@@ -101,8 +101,14 @@ class SyncPullView(APIView):
         states = ReviewState.objects.filter(user=request.user).select_related("card")
         cards = Card.objects.filter(deck__user=request.user)
         decks = Deck.objects.filter(user=request.user)
-        deleted_cards = Card.all_objects.deleted().filter(deck__user=request.user)
-        deleted_decks = Deck.all_objects.deleted().filter(user=request.user)
+        deleted_cards = Card.all_objects.filter(
+            deck__user=request.user,
+            deleted_at__isnull=False,
+        )
+        deleted_decks = Deck.all_objects.filter(
+            user=request.user,
+            deleted_at__isnull=False,
+        )
         if since:
             states = states.filter(updated_at__gt=since)
             cards = cards.filter(updated_at__gt=since)
@@ -132,7 +138,12 @@ class SyncPullView(APIView):
                     "front": card.front,
                     "back": card.back,
                     "example_sentence": card.example_sentence,
+                    "hint": None,
+                    "explanation": card.example_sentence,
+                    "tags": card.tags or [],
+                    "created_at": iso(card.created_at),
                     "updated_at": iso(card.updated_at),
+                    "deleted_at": iso(card.deleted_at),
                 }
                 for card in cards
             ],
@@ -142,7 +153,12 @@ class SyncPullView(APIView):
                     "name": deck.name,
                     "description": deck.description,
                     "is_public": deck.is_public,
+                    "category_id": str(deck.category_ref_id) if deck.category_ref_id else None,
+                    "color": deck.image_url,
+                    "cards_count": deck.card_count,
+                    "card_count": deck.card_count,
                     "updated_at": iso(deck.updated_at),
+                    "deleted_at": iso(deck.deleted_at),
                 }
                 for deck in decks
             ],

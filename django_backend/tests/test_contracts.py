@@ -2,6 +2,7 @@ import bcrypt
 import pytest
 from django.core.management import call_command
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.ai.models import AIGeneration
@@ -38,6 +39,19 @@ def test_laravel_bcrypt_password_can_login(api_client):
     User.objects.create(email="legacy@example.com", name="Legacy", password=raw_hash)
 
     response = api_client.post("/api/auth/login", {"email": "legacy@example.com", "password": "secret123"}, format="json")
+
+    assert response.status_code == 200
+    assert response.data["data"]["token"]
+
+
+@pytest.mark.django_db
+def test_login_does_not_require_csrf_when_browser_session_exists():
+    session_user = User.objects.create_user(email="session@example.com", password="password123", name="Session")
+    User.objects.create_user(email="login@example.com", password="password123", name="Login")
+    client = APIClient(enforce_csrf_checks=True)
+    client.force_login(session_user)
+
+    response = client.post("/api/auth/login", {"email": "login@example.com", "password": "password123"}, format="json")
 
     assert response.status_code == 200
     assert response.data["data"]["token"]
@@ -128,6 +142,35 @@ def test_review_submission_updates_authoritative_state(auth_client, user):
     state = ReviewState.objects.get(card=card, user=user)
     assert state.interval_minutes == 1440
     assert Review.objects.filter(card=card, user=user).exists()
+
+
+@pytest.mark.django_db
+def test_sync_pull_returns_active_data_and_deleted_ids(auth_client, user):
+    deck = Deck.objects.create(user=user, name="Server Deck")
+    card = Card.objects.create(
+        deck=deck,
+        front="hello",
+        back="salam",
+        tags=["greeting"],
+    )
+    deleted_deck = Deck.objects.create(user=user, name="Deleted Deck")
+    deleted_card = Card.objects.create(deck=deck, front="bye", back="khodahafez")
+
+    deleted_card.delete()
+    deleted_deck.delete()
+
+    response = auth_client.get("/api/sync/pull")
+
+    assert response.status_code == 200
+    data = response.data["data"]
+    assert data["decks"][0]["id"] == str(deck.id)
+    assert data["decks"][0]["cards_count"] == 1
+    assert data["decks"][0]["deleted_at"] is None
+    assert data["cards"][0]["id"] == str(card.id)
+    assert data["cards"][0]["created_at"]
+    assert data["cards"][0]["tags"] == ["greeting"]
+    assert str(deleted_deck.id) in data["deleted_decks"]
+    assert str(deleted_card.id) in data["deleted_cards"]
 
 
 @pytest.mark.django_db

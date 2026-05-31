@@ -40,6 +40,7 @@ INSTALLED_APPS.extend(
         "apps.gamification",
         "apps.sync",
         "apps.admin_panel",
+        "apps.web",
     ]
 )
 
@@ -107,6 +108,8 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/cards/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {

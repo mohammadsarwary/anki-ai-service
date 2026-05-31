@@ -1,0 +1,34 @@
+{% extends "web/base.html" %}
+
+{% block title %}Login - Anki AI{% endblock %}
+
+{% block content %}
+<section class="login-page">
+  <div class="login-card">
+    <div class="login-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M12 8v5l3 2"/></svg>
+    </div>
+    <p class="eyebrow">Welcome back</p>
+    <h1>Sign in to Anki AI</h1>
+    <p class="muted">Manage your cards and create new vocabulary with AI.</p>
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="form-error">{{ form.non_field_errors|join:", " }}</div>
+      {% endif %}
+      <label>
+        <span>Email</span>
+        <input name="email" type="email" value="{{ form.email.value|default:'' }}" autocomplete="email" required>
+      </label>
+      <label>
+        <span>Password</span>
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="btn btn-primary btn-full" type="submit">
+        Sign in
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+  </div>
+</section>
+{% endblock %}

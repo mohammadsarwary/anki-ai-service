@@ -1,0 +1,283 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Cards - Anki AI{% endblock %}
+
+{% block content %}
+{{ cards_json|json_script:"cards-data" }}
+<section class="workspace" {% if selected_deck %}data-ai-generate-url="{% url 'web:ai_generate' selected_deck.id %}" data-ai-save-url="{% url 'web:ai_save' selected_deck.id %}"{% endif %}>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Card Management</p>
+      <h1>{% if selected_deck %}{{ selected_deck.name }}{% else %}Your Cards{% endif %}</h1>
+    </div>
+    <div class="topbar-actions">
+      {% if selected_deck %}
+        <button class="btn btn-soft" type="button" data-open-modal="import-cards-modal">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Import
+        </button>
+        <button class="btn btn-soft" type="button" data-open-modal="create-card-modal">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          New Card
+        </button>
+      {% endif %}
+      <span class="avatar">{{ request.user.name|first|default:"U" }}</span>
+    </div>
+  </header>
+
+  {% if not selected_deck %}
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z"/><path d="M8 9h8M8 13h5"/></svg>
+      </div>
+      <h2>No decks yet</h2>
+      <p>Create your first deck in the mobile app or admin panel, then come back here to manage cards and generate new ones with AI.</p>
+    </div>
+  {% else %}
+    <div class="deck-strip" id="deck-strip" aria-label="Decks">
+      {% for deck in decks %}
+        <a class="deck-pill {% if deck.id == selected_deck_id %}active{% endif %}" href="{% url 'web:deck_cards' deck.id %}">
+          {{ deck.name }}
+          <span>{{ deck.card_count }}</span>
+        </a>
+      {% endfor %}
+    </div>
+
+    <section class="stats-grid" aria-label="Deck statistics">
+      <article class="stat-card primary"><span>Total</span><strong>{{ stats.total }}</strong></article>
+      <article class="stat-card easy"><span>Easy</span><strong>{{ stats.easy }}</strong></article>
+      <article class="stat-card medium"><span>Medium</span><strong>{{ stats.medium }}</strong></article>
+      <article class="stat-card hard"><span>Hard</span><strong>{{ stats.hard }}</strong></article>
+    </section>
+
+    <section class="ai-panel" id="ai-generator">
+      <div class="ai-copy">
+        <div class="ai-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/><path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z"/></svg>
+        </div>
+        <div>
+          <p class="eyebrow">AI generator</p>
+          <h2>Create vocabulary cards from a topic</h2>
+        </div>
+      </div>
+      <form id="ai-generate-form" class="ai-form">
+        {% csrf_token %}
+        <label class="topic-field">
+          <span>Topic</span>
+          <input name="topic" type="text" placeholder="At the airport" required>
+        </label>
+        <label>
+          <span>Count</span>
+          <select name="count">
+            <option value="5">5 cards</option>
+            <option value="10" selected>10 cards</option>
+            <option value="15">15 cards</option>
+          </select>
+        </label>
+        <label>
+          <span>Level</span>
+          <select name="level">
+            <option value="beginner" selected>Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </label>
+        <input type="hidden" name="language" value="en">
+        <input type="hidden" name="target_language" value="fa">
+        <button class="btn btn-primary" type="submit">
+          Generate
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/></svg>
+        </button>
+      </form>
+    </section>
+
+    <section class="ai-loading" id="ai-loading" hidden>
+      <div class="progress-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50"/><circle cx="60" cy="60" r="50"/></svg><span>AI</span></div>
+      <div>
+        <p class="eyebrow">Generating</p>
+        <h2>Building your card set</h2>
+        <p class="muted">Our AI is hand-picking useful words for this deck.</p>
+      </div>
+      <div class="skeleton-stack">
+        <span></span><span></span><span></span>
+      </div>
+    </section>
+
+    <section class="ai-preview" id="ai-preview" hidden>
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Preview</p>
+          <h2 id="ai-preview-title">Generated cards</h2>
+        </div>
+        <button class="btn btn-primary" type="button" id="save-ai-cards">
+          Save to deck
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+      </div>
+      <div id="ai-preview-list" class="preview-list"></div>
+    </section>
+
+    <section class="card-management" id="cards-section">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Cards</p>
+          <h2>{{ cards|length }} visible cards</h2>
+        </div>
+        <form class="filters" method="get">
+          <label>
+            <span>Search</span>
+            <input name="q" value="{{ query }}" type="search" placeholder="Search cards">
+          </label>
+          <label>
+            <span>Difficulty</span>
+            <select name="difficulty">
+              <option value="">All</option>
+              <option value="easy" {% if difficulty == "easy" %}selected{% endif %}>Easy</option>
+              <option value="medium" {% if difficulty == "medium" %}selected{% endif %}>Medium</option>
+              <option value="hard" {% if difficulty == "hard" %}selected{% endif %}>Hard</option>
+            </select>
+          </label>
+          <button class="icon-button" type="submit" aria-label="Apply filters">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+          </button>
+        </form>
+      </div>
+
+      {% if cards %}
+        <div class="card-list">
+          {% for card in cards %}
+            <article class="card-row">
+              <div class="term-icon">{{ card.front|first|default:"A" }}</div>
+              <div class="card-main">
+                <div class="card-title-line">
+                  <h3>{{ card.front }}</h3>
+                  {% if card.difficulty %}<span class="difficulty {{ card.difficulty }}">{{ card.get_difficulty_display }}</span>{% endif %}
+                </div>
+                <p>{{ card.back|truncatechars:170 }}</p>
+                {% if card.tags %}
+                  <div class="tag-list">
+                    {% for tag in card.tags %}
+                      <span>{{ tag }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="row-actions">
+                <button class="icon-button" type="button" data-edit-card="{{ card.id }}" aria-label="Edit {{ card.front }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="M14 7l3 3"/></svg>
+                </button>
+                <button class="icon-button danger" type="button" data-delete-card="{{ card.id }}" aria-label="Delete {{ card.front }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>
+                </button>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state compact">
+          <h2>No cards found</h2>
+          <p>Add a card manually, import rows, or generate a new set with AI.</p>
+          <div class="empty-actions">
+            <button class="btn btn-soft" type="button" data-open-modal="import-cards-modal">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+              Import cards
+            </button>
+            <button class="btn btn-primary" type="button" data-open-modal="create-card-modal">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              New Card
+            </button>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    <div class="modal" id="create-card-modal" hidden>
+      <div class="modal-panel">
+        <button class="modal-close" type="button" data-close-modal aria-label="Close">x</button>
+        <h2>New Card</h2>
+        <form method="post" action="{% url 'web:card_create' selected_deck.id %}" class="card-form">
+          {% csrf_token %}
+          {% include "web/partials/card_form_fields.html" %}
+          <button class="btn btn-primary btn-full" type="submit">Create card</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="import-cards-modal" hidden>
+      <div class="modal-panel">
+        <button class="modal-close" type="button" data-close-modal aria-label="Close">x</button>
+        <p class="eyebrow">Import cards</p>
+        <h2>Add cards to {{ selected_deck.name }}</h2>
+        <form method="post" action="{% url 'web:card_import' selected_deck.id %}" enctype="multipart/form-data" class="card-form">
+          {% csrf_token %}
+          <label>
+            <span>CSV, TSV, or TXT file</span>
+            <input name="import_file" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain">
+          </label>
+          <label>
+            <span>Paste rows</span>
+            <textarea name="pasted_cards" rows="8" placeholder="front,back,difficulty,tags&#10;boarding pass,A document that lets you board a plane,easy,travel; airport&#10;departure gate - The place passengers board before leaving"></textarea>
+          </label>
+          <div class="form-grid">
+            <label>
+              <span>Default difficulty</span>
+              <select name="default_difficulty">
+                <option value="">No difficulty</option>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </label>
+            <label>
+              <span>Default tags</span>
+              <input name="default_tags" type="text" placeholder="imported, travel">
+            </label>
+          </div>
+          <label class="check-row">
+            <input name="skip_duplicates" type="checkbox" checked>
+            <span>Skip cards with the same front text</span>
+          </label>
+          <div class="import-help">
+            <strong>Supported columns</strong>
+            <p>Use headers like front, back, difficulty, tags, example_sentence, pronunciation. Without headers, the first two columns become front and back.</p>
+          </div>
+          <button class="btn btn-primary btn-full" type="submit">
+            Import cards
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="edit-card-modal" hidden>
+      <div class="modal-panel">
+        <button class="modal-close" type="button" data-close-modal aria-label="Close">x</button>
+        <h2>Edit Card</h2>
+        <form method="post" action="" class="card-form" id="edit-card-form">
+          {% csrf_token %}
+          {% include "web/partials/card_form_fields.html" %}
+          <button class="btn btn-primary btn-full" type="submit">Save changes</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="delete-card-modal" hidden>
+      <div class="modal-panel small">
+        <button class="modal-close" type="button" data-close-modal aria-label="Close">x</button>
+        <h2>Delete card?</h2>
+        <p class="muted">This removes the card from the deck.</p>
+        <form method="post" action="" id="delete-card-form" class="delete-actions">
+          {% csrf_token %}
+          <button class="btn btn-soft" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'web/cards.js' %}"></script>
+{% endblock %}
